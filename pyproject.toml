@@ -29,6 +29,7 @@ train = [
     "jax[cuda12] >= 0.4.26",
     "flax >= 0.8.4",
     "distrax >= 0.1.5",
+    "tensorboardx",
     "ml_collections",
     "matplotlib",
     "moviepy",

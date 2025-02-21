@@ -115,3 +115,68 @@ def evaluate(
         stats[k] = np.mean(v)
 
     return stats, trajs, renders
+
+
+def evaluate_no_render(
+    agent,
+    env,
+    task_id=None,
+    config=None,
+    num_eval_episodes=50,
+    eval_temperature=0,
+    eval_gaussian=None,
+):
+    """Evaluate the agent in the environment (without rendering).
+
+    Args:
+        agent: Agent.
+        env: Environment.
+        task_id: Task ID to be passed to the environment.
+        config: Configuration dictionary.
+        num_eval_episodes: Number of episodes to evaluate the agent.
+        eval_temperature: Action sampling temperature.
+        eval_gaussian: Standard deviation of the Gaussian noise to add to the actions.
+
+    Returns:
+        A tuple containing the statistics and trajectories.
+    """
+    actor_fn = supply_rng(agent.sample_actions, rng=jax.random.PRNGKey(np.random.randint(0, 2**32)))
+    trajs = []
+    stats = defaultdict(list)
+
+    for i in trange(num_eval_episodes):
+        traj = defaultdict(list)
+
+        observation, info = env.reset(options=dict(task_id=task_id))
+        goal = info.get('goal')
+        done = False
+        step = 0
+        while not done:
+            action = actor_fn(observations=observation, goals=goal, temperature=eval_temperature)
+            action = np.array(action)
+            if not config.get('discrete'):
+                if eval_gaussian is not None:
+                    action = np.random.normal(action, eval_gaussian)
+                action = np.clip(action, -1, 1)
+
+            next_observation, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+            step += 1
+
+            transition = dict(
+                observation=observation,
+                next_observation=next_observation,
+                action=action,
+                reward=reward,
+                done=done,
+                info=info,
+            )
+            add_to(traj, transition)
+            observation = next_observation
+        add_to(stats, flatten(info))
+        trajs.append(traj)
+
+    for k, v in stats.items():
+        stats[k] = np.mean(v)
+
+    return stats, trajs
