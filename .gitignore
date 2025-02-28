@@ -6,5 +6,7 @@ dist/
 .DS_Store
 .idea/
 .ruff_cache/
-agents/
+ckpts/
 tf-logs/
+train.sh
+eval.ipynb

@@ -20,10 +20,10 @@ from tensorboardX import SummaryWriter
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('exp_name', 'gciql', 'Experiment name.')
+flags.DEFINE_string('exp_name', 'exp', 'Experiment name.')
 flags.DEFINE_integer('seed', 0, 'Random seed.')
 flags.DEFINE_string('env_name', 'antmaze-large-navigate-v0', 'Environment (dataset) name.')
-flags.DEFINE_string('save_dir', 'agents/', 'Save directory.')
+flags.DEFINE_string('save_dir', 'ckpts/', 'Save directory.')
 flags.DEFINE_string('tf_log_dir', 'tf-logs/', 'Tensorboard log directory.')
 flags.DEFINE_string('restore_path', None, 'Restore path.')
 flags.DEFINE_integer('restore_epoch', None, 'Restore epoch.')
@@ -43,8 +43,12 @@ config_flags.DEFINE_config_file('agent', 'agents/gciql.py', lock_config=False)
 
 
 def main(_):
+    # Check if the agent name is provided
+    config = FLAGS.agent
+    exp_name = config['agent_name'] if FLAGS.exp_name == 'exp' else FLAGS.exp_name
+
     # Set up logger.
-    exp_name = f"{FLAGS.exp_name}__{FLAGS.env_name}__{int(time.time())}__{FLAGS.seed}"
+    exp_name = f"{exp_name}__{FLAGS.env_name}__{int(time.time())}__{FLAGS.seed}"
     writer = SummaryWriter(f"{FLAGS.tf_log_dir}/{exp_name}")
 
     agent_dir = os.path.join(FLAGS.save_dir, f"{exp_name}__agent")
@@ -54,7 +58,6 @@ def main(_):
         json.dump(flag_dict, f)
 
     # Set up environment and dataset.
-    config = FLAGS.agent
     env, train_dataset, val_dataset = make_env_and_datasets(FLAGS.env_name, frame_stack=config['frame_stack'])
 
     dataset_class = {
